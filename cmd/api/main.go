@@ -4,9 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"fmt"
-	"log"
-	"net/http"
 	"os"
 	"time"
 
@@ -71,6 +68,7 @@ func main() {
 	flag.BoolVar(&cfg.limiter.enabled, "limiter-enabled", true, "Enable rate limiter")
 
 	flag.Parse()
+
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
 	// Call the openDB() helper function (see below) to create the connection pool,
@@ -95,21 +93,12 @@ func main() {
 		models: data.NewModels(db),
 	}
 
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
-		ErrorLog:     log.New(logger, "", 0),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-	}
-
-	logger.PrintInfo("starting server", map[string]string{"env": cfg.env, "addr": srv.Addr})
-
 	// Because the err variable is now already declared in the code above, we need
 	// to use the = operator here, instead of the := operator.
-	err = srv.ListenAndServe()
-	logger.PrintFatal(err, nil)
+	err = app.serve()
+	if err != nil {
+		logger.PrintFatal(err, nil)
+	}
 }
 
 func openDB(cfg config) (*sql.DB, error) {
