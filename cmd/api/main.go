@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"database/sql"
+	"expvar"
 	"flag"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -113,6 +115,20 @@ func main() {
 	// Also log a message to say that the connection pool has been successfully
 	// established.
 	logger.PrintInfo("database connection pool established", nil)
+
+	expvar.NewString("version").Set(version)
+
+	expvar.Publish("gorutines", expvar.Func(func() interface{} {
+		return runtime.NumGoroutine()
+	}))
+
+	expvar.Publish("database", expvar.Func(func() interface{} {
+		return db.Stats()
+	}))
+
+	expvar.Publish("timestamp", expvar.Func(func() interface{} {
+		return time.Now().Unix()
+	}))
 
 	app := &application{
 		config: cfg,
